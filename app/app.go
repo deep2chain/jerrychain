@@ -92,6 +92,9 @@ import (
 
 	"github.com/deep2chain/jerrychain/docs"
 
+	dexmodule "github.com/deep2chain/jerrychain/x/dex"
+	dexmodulekeeper "github.com/deep2chain/jerrychain/x/dex/keeper"
+	dexmoduletypes "github.com/deep2chain/jerrychain/x/dex/types"
 	jerrychainmodule "github.com/deep2chain/jerrychain/x/jerrychain"
 	jerrychainmodulekeeper "github.com/deep2chain/jerrychain/x/jerrychain/keeper"
 	jerrychainmoduletypes "github.com/deep2chain/jerrychain/x/jerrychain/types"
@@ -148,6 +151,7 @@ var (
 		transfer.AppModuleBasic{},
 		vesting.AppModuleBasic{},
 		jerrychainmodule.AppModuleBasic{},
+		dexmodule.AppModuleBasic{},
 		// this line is used by starport scaffolding # stargate/app/moduleBasic
 	)
 
@@ -218,6 +222,8 @@ type App struct {
 	ScopedTransferKeeper capabilitykeeper.ScopedKeeper
 
 	JerrychainKeeper jerrychainmodulekeeper.Keeper
+
+	DexKeeper dexmodulekeeper.Keeper
 	// this line is used by starport scaffolding # stargate/app/keeperDeclaration
 
 	// mm is the module manager
@@ -255,6 +261,7 @@ func New(
 		govtypes.StoreKey, paramstypes.StoreKey, ibchost.StoreKey, upgradetypes.StoreKey, feegrant.StoreKey,
 		evidencetypes.StoreKey, ibctransfertypes.StoreKey, capabilitytypes.StoreKey,
 		jerrychainmoduletypes.StoreKey,
+		dexmoduletypes.StoreKey,
 		// this line is used by starport scaffolding # stargate/app/storeKey
 	)
 	tkeys := sdk.NewTransientStoreKeys(paramstypes.TStoreKey)
@@ -361,6 +368,14 @@ func New(
 	)
 	jerrychainModule := jerrychainmodule.NewAppModule(appCodec, app.JerrychainKeeper, app.AccountKeeper, app.BankKeeper)
 
+	app.DexKeeper = *dexmodulekeeper.NewKeeper(
+		appCodec,
+		keys[dexmoduletypes.StoreKey],
+		keys[dexmoduletypes.MemStoreKey],
+		app.GetSubspace(dexmoduletypes.ModuleName),
+	)
+	dexModule := dexmodule.NewAppModule(appCodec, app.DexKeeper, app.AccountKeeper, app.BankKeeper)
+
 	// this line is used by starport scaffolding # stargate/app/keeperDefinition
 
 	// Create static IBC router, add transfer route, then set and seal it
@@ -400,6 +415,7 @@ func New(
 		params.NewAppModule(app.ParamsKeeper),
 		transferModule,
 		jerrychainModule,
+		dexModule,
 		// this line is used by starport scaffolding # stargate/app/appModule
 	)
 
@@ -435,6 +451,7 @@ func New(
 		evidencetypes.ModuleName,
 		ibctransfertypes.ModuleName,
 		jerrychainmoduletypes.ModuleName,
+		dexmoduletypes.ModuleName,
 		// this line is used by starport scaffolding # stargate/app/initGenesis
 	)
 
@@ -458,6 +475,7 @@ func New(
 		ibc.NewAppModule(app.IBCKeeper),
 		transferModule,
 		jerrychainModule,
+		dexModule,
 		// this line is used by starport scaffolding # stargate/app/appModule
 	)
 	app.sm.RegisterStoreDecoders()
@@ -646,6 +664,7 @@ func initParamsKeeper(appCodec codec.BinaryCodec, legacyAmino *codec.LegacyAmino
 	paramsKeeper.Subspace(ibctransfertypes.ModuleName)
 	paramsKeeper.Subspace(ibchost.ModuleName)
 	paramsKeeper.Subspace(jerrychainmoduletypes.ModuleName)
+	paramsKeeper.Subspace(dexmoduletypes.ModuleName)
 	// this line is used by starport scaffolding # stargate/app/paramSubspace
 
 	return paramsKeeper
